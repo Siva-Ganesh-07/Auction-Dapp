@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<head>
+	<title>Auction</title>
+	
+	<h1>Auction</h1>
+	<hr>
+	
+
+	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.2.7-rc.0/web3.min.js"></script>
+
+	<style>
+		body{
+			background-color: skyblue;
+			font-family: Arial, Helvetica, sans-serif;
+		}
+
+		button{
+			width: 110px;
+			padding: 6px;
+		}
+
+		input{
+			width: 110px;
+			padding: 6px;
+		}
+		
+
+		.meta{
+			float: right;
+			margin-top: 2%;
+			margin-right: 8%;
+		}
+
+		.meta button{
+			width: 150px;
+			padding: 6px;
+		}
+
+		.meta p{
+			float: right;
+			margin-top: 11%;
+			margin-right: -98%;
+		}
+
+		.contract{
+			float: right;
+			margin-top: 6%;
+			margin-right: -8%;
+		}
+
+		.contract button{
+			width: 150px;
+			padding: 6px;
+		}
+
+		.contract p{
+			float: right;
+			margin-top: 19%;
+			margin-right: -230%;
+		}
+		.allButton {
+			float: left;
+			margin-left: 4%;
+			margin-top: 6%;
+		}
+
+		.owner {
+			float: left;
+			margin-left: 3%;
+			margin-top: -6%;
+		}
+
+		.start{
+			float: left;
+			margin-top: -2.5%;
+			margin-left: 3%;
+		}
+
+		.end{
+			float: left;
+			margin-top: 0.5%;
+			margin-left: -1%;
+		}
+		
+		.highestBid{
+			float: left;
+			margin-top: 4%;
+			margin-left: -1%;
+		}
+
+		.bidder{
+			float: left;
+			margin-top: 7%;
+			margin-left: -1%;
+		}
+
+		.state{
+			float: left;
+			margin-top: 10%;
+			margin-left: -24%;
+		}
+
+		.balan{
+
+			float: left;
+			margin-top: 23.5%;
+			margin-left: -23%;
+		}
+
+
+		button:hover{
+			color: white;
+			background-color: black;
+		}
+
+	</style>
+</head>
+<body>
+	<div class="meta">
+		<button onclick="connectMetamask()">Connect MetaMask</button> <br> <br> <br>
+		<button onclick="connectContract()">Connect Contract</button> <br> <br> <br>
+		<button onclick="bid()">Bid</button>&emsp;
+		<input type="number" id="amount" placeholder="Wei">
+		
+	</div>
+
+	<div class="meta">
+		<p id="metaArea"></p>
+	</div>
+
+	<div class="contract">
+		<p id="contractArea"></p>
+	</div>
+
+	<div class="allButton">
+		<button onclick="Owner()">Owner</button><br><br>
+		<button onclick="start()">Start Block</button><br><br>
+		<button onclick="end()">End Block</button><br><br>
+		<button onclick="highestBid()">Highest Bid</button><br><br>
+		<button onclick="highestBidder()">Highest Bidder</button><br><br>
+		<button onclick="auctionState()">Auction State</button><br><br>
+		<button onclick="cancelAuction()">CancelAuction</button><br><br>
+		<button onclick="endAuction()">End Auction</button><br><br>
+		<button onclick="withdrawl()">Withdrawl</button><br><br>
+		<button onclick="balance()">Balance</button><br><br>
+	</div>
+
+	<div class="owner">
+		<p id="ownerArea"></p>
+	</div>
+
+	<div class="start">
+		<p id="startArea"></p><br>
+	</div>
+
+	<div class="end">
+		<p id="endArea"></p><br>
+	</div>
+
+	<div class="highestBid">
+		<p id="highestbidArea"></p><br>
+	</div>
+
+	<div class="bidder">
+		<p id="bidderArea"></p>
+	</div>
+
+	<div class="state">
+		<p id="stateArea"></p>
+	</div>
+
+	<div class="balan">
+		<p id="balanceArea"></p>
+	</div>
+
+
+	<script>
+		//Connect MetaMask
+		let account;
+		const connectMetamask = async() => {
+			if(window.ethereum !== "undefined") {
+				const accounts = await ethereum.request({method: "eth_requestAccounts"});
+				account = accounts[0];
+				document.getElementById("metaArea").innerHTML = account;
+			}
+		}
+
+		//Connect Contract
+		const connectContract = async() => {
+			const ABI = [
+			{
+				"inputs": [],
+				"stateMutability": "nonpayable",
+				"type": "constructor"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
+						"internalType": "address",
+						"name": "winner",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					}
+				],
+				"name": "AuctionEnded",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
+						"internalType": "address",
+						"name": "bidder",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					}
+				],
+				"name": "HighestBidIncreased",
+				"type": "event"
+			},
+			{
+				"inputs": [],
+				"name": "auctionState",
+				"outputs": [
+					{
+						"internalType": "enum Auction.State",
+						"name": "",
+						"type": "uint8"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "balance",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "bid",
+				"outputs": [],
+				"stateMutability": "payable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"name": "bids",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "cancelAuction",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "endAuction",
+				"outputs": [],
+				"stateMutability": "payable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "endBlock",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "highestBid",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "highestBidder",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "owner",
+				"outputs": [
+					{
+						"internalType": "address payable",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"name": "participants",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "startBlock",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "withdraw",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			}
+		];
+			const Address = "0xF4cEd5A4D80C58d1a2663ED1da7B653CF3C5e567";
+			window.web3 = await new Web3(window.ethereum);
+			window.contract = await new window.web3.eth.Contract(ABI, Address);
+			document.getElementById("contractArea").innerHTML = "Contract Connected Successfully";
+		}
+
+		//Display Owner
+		const Owner = async() => {
+			data = await window.contract.methods.owner().call();
+			document.getElementById("ownerArea").innerHTML = data;
+		}
+
+		//Display Start Block
+		const start = async() => {
+			data = await window.contract.methods.startBlock().call();
+			document.getElementById("startArea").innerHTML = data;
+		}
+
+		//Displaay End Block
+		const end = async() => {
+			data= await window.contract.methods.endBlock().call();
+			document.getElementById("endArea").innerHTML = data;
+		}
+
+		//Display Highest Bid
+		const highestBid = async() => {
+			data = await window.contract.methods.highestBid().call();
+			document.getElementById("highestbidArea").innerHTML = data;
+		}
+
+		//Display Highest Bidder
+		const highestBidder = async() => {
+			data = await window.contract.methods.highestBidder().call();
+			document.getElementById("bidderArea").innerHTML = data;
+		}
+
+		//Display Auction State
+		const auctionState = async() => {
+			data = await window.contract.methods.auctionState().call();
+			document.getElementById("stateArea").innerHTML = data;
+		}
+
+		//Cancel Auction
+		const cancelAuction = async() => {
+			await window.contract.methods.cancelAuction().send({from: account});
+		}
+
+		//End Auction
+		const endAuction = async() => {
+			await window.contract.methods.endAuction().send({from: account});
+		}
+
+		//Withdrawl Auction
+		const withdrawl = async() => {
+			await window.contract.methods.withdraw().send({from: account});
+		}
+
+		//Bid
+		const bid = async() => {
+			const amount = document.getElementById("amount").value;
+			await window.contract.methods.bid().send({from: account, value: amount});
+		}
+
+		//Display Balance
+		const balance = async() => {
+			data = await window.contract.methods.balance().call();
+			document.getElementById("balanceArea").innerHTML = data;	
+		}
+	</script>
+</body>
